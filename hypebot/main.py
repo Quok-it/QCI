@@ -6,6 +6,7 @@ from config import PRIVATE_KEY_PATH
 from ssh_manager import SSHManager
 import random
 import time
+from rental_session import RentalSession
 logger = Logger() # Initiate logger 
 
 def main():
@@ -30,7 +31,11 @@ def main():
     # Rent GPU 
     logger.log("Attempting to rent GPU instance...")
 
-
+    # Create session
+    session = RentalSession(
+        client_id=selected_node["node_id"],
+        cluster_name=selected_node["cluster_name"]
+    )
     try:
         rental_info = marketplace_client.rent_gpu(
             cluster_name=selected_node["cluster_name"],
@@ -41,6 +46,8 @@ def main():
         logger.log(f"Created instance: {instance_name}")
     except Exception as e:
         logger.log_error(e, context="rent_gpu() failed")
+        
+        # TODO: handle rental failure 
         return
 
     # Check if Instance is Ready 
@@ -52,6 +59,10 @@ def main():
         logger.log(f"Instance info: {instance_details}")
     except Exception as e:
         logger.log_error(e, context="poll_instance_until_ready")
+        session.add_error("Machine failed to Boot after 4 minutes")
+        session.boot_success = False
+        db_interface.save_rental_session(session.to_dict())
+
         return
 
     end_rent_time = time.time()
@@ -61,7 +72,9 @@ def main():
     boot_time_ms = boot_time_seconds * 1000
 
     logger.log(f"Instance Boot Time: {boot_time_ms:.2f} ms")
-
+    # During flow:
+    session.boot_success = True
+    session.boot_time_ms = boot_time_ms
     # TODO: Log checkpoint here rq 
     # db_interface.save_gpu_instance(selected_gpu)
     # logger.log("GPU instance info saved to MongoDB.")
@@ -82,14 +95,19 @@ def main():
         logger.log("[WARN] SSH connection failed. Marking instance as 'ssh_unreachable' in database.")
         # Save to database something like:
         # {"instance_name": ..., "ssh_status": "unreachable"}
+        session.ssh_success = False
+        session.add_error("SSH failed after 3 attempts")
+        db_interface.save_rental_session(session.to_dict())
         cleanup(marketplace_client, ssh_manager, instance_id)
         return
     else:
+        session.ssh_success = True
+        session.ssh_latency_ms=ssh_latency
         logger.log(f"SSH connection successful. Latency: {ssh_latency:.2f} ms")
 
-    logger.log(f"Instance ssh connection time: {ssh_latency:.2f} ms")
-
     instance_id = instance_details["id"]
+    db_interface.save_rental_session(session.to_dict())
+
     cleanup(marketplace_client, ssh_manager, instance_id)
 
 

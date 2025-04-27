@@ -1,13 +1,27 @@
 from pymongo import MongoClient
-import datetime
+from pymongo.errors import ConnectionFailure, OperationFailure
+from config import MONGODB_URI
 
 class DatabaseInterface:
     def __init__(self, db_uri: str, collection_name: str):
-        self.client = MongoClient(db_uri)
-        self.db = self.client["QCP"]
-        self.collection = self.db["collection_name"]  
+        try: 
+            self.client = MongoClient(db_uri)
+            self.client.server_info()  # Force connection on init
+            print("[INFO] Connected successfully to MongoDB.")
+        except ConnectionFailure as e:
+            raise Exception(f"[ERROR] Could not connect to MongoDB: {e}")
 
-    def save_gpu_instance(self, gpu_info: dict) -> None:
-        """Save GPU instance info into MongoDB."""
-        gpu_info["timestamp"] = datetime.datetime.now(datetime.UTC) # Add timestamp
-        self.collection.insert_one(gpu_info)
+        self.db = self.client["QCP"]
+        self.collection = self.db[collection_name]  
+
+    def save_rental_session(self, session_data: dict):
+        """Save a rental session document to the database."""
+        try:
+            self.collection.insert_one(session_data)
+            print(f"[INFO] Rental session {session_data.get('session_id')} saved to MongoDB.")
+        except OperationFailure as e:
+            print(f"[ERROR] Failed to save rental session: {e}")
+
+    def close(self):
+        self.client.close()
+        print("[INFO] MongoDB connection closed.")

@@ -81,7 +81,7 @@ class MarketplaceClient:
         return full_response.get("instances", [])
 
     
-    def poll_instance_until_ready(self, instance_name: str, max_attempts: int = 50, wait_seconds: int = 5) -> dict:
+    def poll_instance_until_ready(self, instance_name: str, max_attempts: int = 25, wait_seconds: int = 5) -> dict:
         attempts = 0
         print("Starting polling...")
 
