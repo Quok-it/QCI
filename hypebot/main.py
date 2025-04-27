@@ -6,8 +6,10 @@ from config import PRIVATE_KEY_PATH
 from ssh_manager import SSHManager
 import random
 import time
+logger = Logger() # Initiate logger 
+
 def main():
-    logger = Logger() # Initiate logger 
+    # logger = Logger() # Initiate logger 
     marketplace_client = MarketplaceClient() # Initialize Marketplace Client
     db_interface = DatabaseInterface(db_uri=MONGODB_URI, collection_name="hyperbolic")
     logger.log("Starting QuokBot...")
@@ -74,9 +76,21 @@ def main():
         private_key_path=PRIVATE_KEY_PATH,
         port=port                 
     )
-
     ssh_latency = SSHManager.connect_and_measure_latency(ssh_manager) # Connect and measure 
+
+    if ssh_latency == -1:
+        logger.log("[WARN] SSH connection failed. Marking instance as 'ssh_unreachable' in database.")
+        # Save to database something like:
+        # {"instance_name": ..., "ssh_status": "unreachable"}
+        cleanup(marketplace_client, ssh_manager, instance_id)
+        return
+    else:
+        logger.log(f"SSH connection successful. Latency: {ssh_latency:.2f} ms")
+
     logger.log(f"Instance ssh connection time: {ssh_latency:.2f} ms")
+
+    instance_id = instance_details["id"]
+    cleanup(marketplace_client, ssh_manager, instance_id)
 
 
 # TODO: Move into utils probably 
@@ -100,6 +114,13 @@ def parse_ssh_command(ssh_command: str) -> tuple[str, str, int]:
     port = int(parts[3])
 
     return username, hostname, port
+
+def cleanup(marketplace_client: MarketplaceClient, ssh_manager: SSHManager, instance_id: str): 
+    logger.log("---------CLEANUP-------")
+    SSHManager.disconnect(ssh_manager) # Disconnect
+    logger.log("SSH has been disconeected")
+    MarketplaceClient.terminate_instance(marketplace_client, instance_id) # Terminate thhe instance
+    logger.log("Instance has been terminated")
 
 if __name__ == "__main__":
     main()

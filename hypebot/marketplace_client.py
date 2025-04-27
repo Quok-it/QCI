@@ -1,6 +1,7 @@
 import requests
 import time
 from config import HYPERBOLIC_API_KEY
+import json
 class MarketplaceClient:
     def __init__(self):
         self.marketplace_url = "https://api.hyperbolic.xyz/v1/marketplace"
@@ -112,3 +113,23 @@ class MarketplaceClient:
             time.sleep(wait_seconds)
 
         raise Exception(f"Instance {instance_name} not ready after {max_attempts} attempts.")
+    
+    def terminate_instance(self, instance_id: str): 
+        url = "https://api.hyperbolic.xyz/v1/marketplace/instances/terminate"
+        headers = {
+            "Authorization": f"Bearer {HYPERBOLIC_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "id": instance_id
+        }
+
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+
+        full_response = response.json()
+
+        # print("\n[DEBUG] Full Response from /instances API:")
+        # print(json.dumps(full_response, indent=2))  # Pretty print with indentation
+
+        return full_response

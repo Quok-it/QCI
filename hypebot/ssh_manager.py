@@ -1,7 +1,7 @@
 import paramiko
 import time
 import os 
-
+import socket
 class SSHManager:
     def __init__(self, ip: str, username: str, private_key_path: str, port: int = 22):
         self.ip = ip
@@ -22,27 +22,33 @@ class SSHManager:
         except paramiko.ssh_exception.PasswordRequiredException:
             raise Exception("Private key is password protected. Cannot load without password.")
         except paramiko.ssh_exception.SSHException:
-            # fallback to RSA or ECDSA if needed
+            # fallback to ECDSA if needed
             raise Exception(f"Failed to load Ed25519 key from {self.private_key_path}. Ensure it is a valid key.")
 
     def connect_and_measure_latency(self, timeout: int = 30) -> float:
-        """Connects over SSH and measures connection time in milliseconds."""
+        """Connects over SSH and measures connection time in milliseconds. Returns -1 if failed."""
         key = self._load_private_key()
 
-        start_time =time.time()
+        start_time = time.time()
         self.client = paramiko.SSHClient()
         self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        self.client.connect(
-            hostname=self.ip,
-            username=self.username,
-            pkey=key,
-            port=self.port,
-            timeout=timeout
-        )
-        end_time =time.time()
+
+        try:
+            self.client.connect(
+                hostname=self.ip,
+                username=self.username,
+                pkey=key,
+                port=self.port,
+                timeout=timeout
+            )
+        except (paramiko.ssh_exception.SSHException, socket.error, TimeoutError) as e:
+            print(f"[ERROR] SSH connection failed: {e}")
+            return -1  # Special value indicating SSH failure
+
+        end_time = time.time()
+
         latency_ms = (end_time - start_time) * 1000
         return latency_ms
-
     def disconnect(self):
         if self.client:
             self.client.close()
