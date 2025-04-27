@@ -49,6 +49,19 @@ class SSHManager:
 
         latency_ms = (end_time - start_time) * 1000
         return latency_ms
+        
+    def run_command(self, command: str) -> tuple[str, str]:
+        """Runs a command over SSH and returns (stdout, stderr) as strings."""
+        if self.client is None:
+            raise Exception("SSH connection not established. Cannot run command.")
+
+        stdin, stdout, stderr = self.client.exec_command(command)
+
+        out = stdout.read().decode()
+        err = stderr.read().decode()
+
+        return out, err
+    
     def disconnect(self):
         if self.client:
             self.client.close()
