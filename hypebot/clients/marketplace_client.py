@@ -1,6 +1,6 @@
 import requests
 import time
-from config import HYPERBOLIC_API_KEY
+from hypebot.config.config  import HYPERBOLIC_API_KEY
 import json
 class MarketplaceClient:
     def __init__(self):

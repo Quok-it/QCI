@@ -1,12 +1,12 @@
-from marketplace_client import MarketplaceClient
-from db_interface import DatabaseInterface
-from logger import Logger
-from config import MONGODB_URI 
-from config import PRIVATE_KEY_PATH
-from ssh_manager import SSHManager
+from hypebot.clients.marketplace_client import MarketplaceClient
+from hypebot.clients.db_interface import DatabaseInterface
+from hypebot.core.logger import Logger
+from hypebot.config.config import MONGODB_URI 
+from hypebot.config.config  import PRIVATE_KEY_PATH
+from hypebot.core.ssh_manager import SSHManager
 import random
 import time
-from rental_session import RentalSession
+from hypebot.core.rental_session import RentalSession
 logger = Logger() # Initiate logger 
 
 def main():

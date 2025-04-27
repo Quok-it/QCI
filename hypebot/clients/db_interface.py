@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, OperationFailure
-from config import MONGODB_URI
+from hypebot.config.config import MONGODB_URI
 
 class DatabaseInterface:
     def __init__(self, db_uri: str, collection_name: str):
