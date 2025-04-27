@@ -9,3 +9,5 @@ load_dotenv()
 MONGODB_URI = os.getenv("MONGODB_URI")
 
 HYPERBOLIC_API_KEY = os.getenv("HYPERBOLIC_API_KEY")
+
+PRIVATE_KEY_PATH= os.getenv("PRIVATE_KEY_PATH")
