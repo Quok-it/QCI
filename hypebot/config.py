@@ -7,3 +7,5 @@ load_dotenv()
 
 # Now read 
 MONGODB_URI = os.getenv("MONGODB_URI")
+
+HYPERBOLIC_API_KEY = os.getenv("HYPERBOLIC_API_KEY")
