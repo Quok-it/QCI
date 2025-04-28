@@ -18,7 +18,7 @@ class RentalSession:
         self.cpu_info: Optional[Dict[str, Any]] = None
         self.ram_info: Optional[Dict[str, Any]] = None
         self.storage_info: Optional[Dict[str, Any]] = None
-        self.benchmarks: Optional[Dict[str, Any]] = None
+        self.benchmarks = {}
         self.errors: List[str] = []
         self.termination_time: Optional[str] = None
         self.termination_status: Optional[str] = None

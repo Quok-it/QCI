@@ -7,6 +7,7 @@ from hypebot.core.ssh_manager import SSHManager
 import random
 import time
 from hypebot.core.rental_session import RentalSession
+from hypebot.benchmark.gpu_info_collector import *
 logger = Logger() # Initiate logger 
 
 def main():
@@ -104,10 +105,16 @@ def main():
         session.ssh_success = True
         session.ssh_latency_ms=ssh_latency
         logger.log(f"SSH connection successful. Latency: {ssh_latency:.2f} ms")
+    
+    try:
+        gpu_health_snapshot = collect_gpu_health_snapshot(ssh_manager)
+        session.benchmarks["gpu_health_snapshot"] = gpu_health_snapshot
+    except Exception as e:
+        session.add_error(f"GPU health snapshot failed: {str(e)}")
+        print(str(e))
 
-    instance_id = instance_details["id"]
     db_interface.save_rental_session(session.to_dict())
-
+    instance_id = instance_details["id"]
     cleanup(marketplace_client, ssh_manager, instance_id)
 
 
