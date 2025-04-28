@@ -9,7 +9,7 @@ def collect_gpu_health_snapshot(ssh_manager) -> dict:
     if err.strip():
         raise Exception(f"[ERROR] Failed to run nvidia-smi -q: {err}")
     # print("\n[DEBUG] Raw nvidia-smi -q Output:")
-    print(out)
+    # print(out)
 
     snapshot = {"snapshot_version": 1}  # Always version your snapshots
 
@@ -26,7 +26,7 @@ def collect_gpu_health_snapshot(ssh_manager) -> dict:
         # Section detection
         if (":" not in line) and not (line.startswith("-")):
             current_section = line
-            print(f"[DEBUG] Entered section: {current_section}")
+            # print(f"[DEBUG] Entered section: {current_section}")
             continue
 
         # Data line inside section
@@ -35,7 +35,7 @@ def collect_gpu_health_snapshot(ssh_manager) -> dict:
             key = key.strip()
             value = value.strip()
 
-            print(f"[DEBUG] Parsing {key} = {value} inside {current_section}")
+            # print(f"[DEBUG] Parsing {key} = {value} inside {current_section}")
         # -------------------- #
         # Basic flat key parsing
         # -------------------- #
@@ -57,7 +57,7 @@ def collect_gpu_health_snapshot(ssh_manager) -> dict:
             field_name = "power_draw_watts"
             field_value = extract_number(line)
             snapshot[field_name] = field_value
-            print(f"[Parse] Found {field_name}: {field_value}")
+            # print(f"[Parse] Found {field_name}: {field_value}")
         if line.startswith("Current Power Limit") and current_section=="GPU Power Readings":
             snapshot["current_power_limit_watts"] = extract_number(line)
         if line.startswith("Default Power Limit") and current_section=="GPU Power Readings":

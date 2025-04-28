@@ -17,7 +17,7 @@ def main():
     logger.log("Starting QuokBot...")
 
     # Get available GPUs (array of dictionary)
-    available_gpus = marketplace_client.list_available_gpus(gpu_name_filter="H100")
+    available_gpus = marketplace_client.list_available_gpus()
 
     if not available_gpus:
         logger.log("No available GPUs found. Exiting.")
@@ -35,7 +35,8 @@ def main():
     # Create session
     session = RentalSession(
         client_id=selected_node["node_id"],
-        cluster_name=selected_node["cluster_name"]
+        cluster_name=selected_node["cluster_name"], 
+        marketplace="Hyperbolic"
     )
     try:
         rental_info = marketplace_client.rent_gpu(
