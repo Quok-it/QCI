@@ -3,12 +3,13 @@ from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
 
 class RentalSession:
-    def __init__(self, client_id: str, cluster_name: str,marketplace: str):
+    def __init__(self, client_id: str, cluster_name: str,marketplace: str, model:str):
         self.session_id = str(uuid.uuid4())
         self.client_id = client_id
         self.cluster_name = cluster_name
         self.start_time = datetime.now(timezone.utc).isoformat()
         self.marketplace = marketplace
+        self.gpu_model = model
         # Optional fields that will be populated over time
         self.boot_success: Optional[bool] = None
         self.boot_time_ms: Optional[float] = None
@@ -31,6 +32,7 @@ class RentalSession:
         return {
             "session_id": self.session_id,
             "marketplace": self.marketplace, 
+            "gpu_model": self.gpu_model,
             "client_id": self.client_id,
             "cluster_name": self.cluster_name,
             "start_time": self.start_time,

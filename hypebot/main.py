@@ -11,6 +11,11 @@ from hypebot.benchmark.gpu_info_collector import *
 logger = Logger() # Initiate logger 
 
 def main():
+    for i in range (100):
+        logger.log(f"[QUOK IT] {i} TIME!")
+        loop()
+
+def loop():
     # logger = Logger() # Initiate logger 
     marketplace_client = MarketplaceClient() # Initialize Marketplace Client
     db_interface = DatabaseInterface(db_uri=MONGODB_URI, collection_name="hyperbolic")
@@ -28,7 +33,7 @@ def main():
     # Select a GPU 
     selected_node = random.choice(available_gpus)
     logger.log(f"Selected GPU: {selected_node}")
-
+    model = selected_node["gpu_model"]
     # Rent GPU 
     logger.log("Attempting to rent GPU instance...")
 
@@ -36,7 +41,8 @@ def main():
     session = RentalSession(
         client_id=selected_node["node_id"],
         cluster_name=selected_node["cluster_name"], 
-        marketplace="Hyperbolic"
+        marketplace="Hyperbolic", 
+        model = model
     )
     try:
         rental_info = marketplace_client.rent_gpu(
@@ -82,6 +88,7 @@ def main():
     # logger.log("GPU instance info saved to MongoDB.")
 
     # SSH Connection stuffs 
+    instance_id = instance_details["id"]
     ssh_command = instance_details["sshCommand"]
     username, host, port = parse_ssh_command(ssh_command) # Extract parameters for ssh manager 
     # initialize ssh manager 
@@ -107,15 +114,17 @@ def main():
         session.ssh_latency_ms=ssh_latency
         logger.log(f"SSH connection successful. Latency: {ssh_latency:.2f} ms")
     
+    logger.log("Running health check....")
     try:
         gpu_health_snapshot = collect_gpu_health_snapshot(ssh_manager)
         session.benchmarks["gpu_health_snapshot"] = gpu_health_snapshot
+        logger.log("Health check Completed Successfully!")
     except Exception as e:
+        logger.log("GPU health snapshot failed")
         session.add_error(f"GPU health snapshot failed: {str(e)}")
         print(str(e))
 
     db_interface.save_rental_session(session.to_dict())
-    instance_id = instance_details["id"]
     cleanup(marketplace_client, ssh_manager, instance_id)
 
 
