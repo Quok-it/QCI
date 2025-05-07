@@ -1,28 +1,29 @@
-from hypebot.clients.marketplace_client import MarketplaceClient
-from hypebot.clients.db_interface import DatabaseInterface
-from hypebot.core.logger import Logger
-from hypebot.config.config import MONGODB_URI 
-from hypebot.config.config  import PRIVATE_KEY_PATH
-from hypebot.core.ssh_manager import SSHManager
+from primebot.clients.marketplace_client import MarketplaceClient
+from primebot.clients.db_interface import DatabaseInterface
+from primebot.core.logger import Logger
+from primebot.config.config import MONGODB_URI 
+from primebot.config.config  import PRIVATE_KEY_PATH
+from primebot.core.ssh_manager import SSHManager
 import random
 import time
-from hypebot.core.rental_session import RentalSession
-from hypebot.benchmark.gpu_info_collector import *
+from primebot.core.rental_session import RentalSession
+from primebot.benchmark.gpu_info_collector import *
 logger = Logger() # Initiate logger 
 
-def main():
-    for i in range (100):
-        logger.log(f"[QUOK IT] {i} TIME!")
-        loop()
+# def main():
+#     for i in range (100):
+#         logger.log(f"[QUOK IT] {i} TIME!")
+#         loop()
 
-def loop():
+def main():
     # logger = Logger() # Initiate logger 
     marketplace_client = MarketplaceClient() # Initialize Marketplace Client
-    db_interface = DatabaseInterface(db_uri=MONGODB_URI, collection_name="hyperbolic")
+    db_interface = DatabaseInterface(db_uri=MONGODB_URI, collection_name="prime-intellect")
     logger.log("Starting QuokBot...")
 
     # Get available GPUs (array of dictionary)
-    available_gpus = marketplace_client.list_available_gpus(gpu_name_filter="H100")
+    available_gpus = marketplace_client.list_available_gpus()
+    return 
 
     if not available_gpus:
         logger.log("No available GPUs found. Exiting.")
@@ -115,7 +116,7 @@ def loop():
         session.ssh_latency_ms=ssh_latency
         logger.log(f"SSH connection successful. Latency: {ssh_latency:.2f} ms")
     
-        logger.log("Running health check....")
+    logger.log("Running health check....")
     try:
         gpu_health_snapshot = collect_gpu_health_snapshot(ssh_manager)
         session.benchmarks["gpu_health_snapshot"] = gpu_health_snapshot
@@ -123,50 +124,6 @@ def loop():
     except Exception as e:
         logger.log("GPU health snapshot failed")
         session.add_error(f"GPU health snapshot failed: {str(e)}")
-        print(str(e))
-    
-    # Run benchmarking commands
-    logger.log("Starting benchmarking process...")
-    try:
-        # Setup and run benchmarks
-        setup_commands = """
-        git clone https://github.com/Quok-it/benchmarking && \
-        cd benchmarking && \
-        chmod +x benchmarks.sh
-        """
-        
-        stdout, stderr = ssh_manager.run_command(setup_commands)
-        if stderr:
-            logger.log(f"Warning during benchmark setup: {stderr}")
-        
-        # Run the benchmark script (which includes running parse.py)
-        logger.log("Running benchmarks (this may take a while)...")
-        stdout, stderr = ssh_manager.run_command("cd benchmarking && ./benchmarks.sh")
-        
-        # Log any stderr output for debugging
-        if stderr:
-            logger.log(f"Warnings during benchmark execution: {stderr}")
-        
-        # Find the JSON output in stdout (it will be the last part of the output)
-        try:
-            import json
-            # Split the output by lines and find the last line that starts with '{'
-            json_lines = [line for line in stdout.split('\n') if line.strip().startswith('{')]
-            if json_lines:
-                benchmark_results = json.loads(json_lines[-1])
-                session.benchmarks["gpu_benchmarks"] = benchmark_results
-                logger.log("Successfully stored benchmark results in session!")
-            else:
-                raise ValueError("No JSON output found in benchmark results")
-                
-        except (json.JSONDecodeError, ValueError) as e:
-            logger.log(f"Error parsing benchmark results: {e}")
-            logger.log(f"Raw output was: {stdout}")
-            session.add_error("Failed to parse benchmark results")
-            
-    except Exception as e:
-        logger.log("Benchmarking process failed")
-        session.add_error(f"Benchmarking failed: {str(e)}")
         print(str(e))
 
     db_interface.save_rental_session(session.to_dict())
