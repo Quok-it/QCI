@@ -53,8 +53,13 @@ class MarketplaceClient:
             }
             payload = {
                 "cluster_name": cluster_name,
-                "node_name": node_name,
-                "gpu_count": gpu_count
+                    "node_name": node_name,
+                "gpu_count": gpu_count,
+                "image": {
+                    "name": "nvidia/cuda",
+                    "tag": "12.3.1-devel-ubuntu22.04",
+                    "port": 22
+                }
             }
 
             response = requests.post(url, json=payload, headers=headers)

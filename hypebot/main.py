@@ -128,8 +128,9 @@ def loop():
     # Run benchmarking commands
     logger.log("Starting benchmarking process...")
     try:
-        # Setup and run benchmarks
+        # Setup benchmarking environment
         setup_commands = """
+        rm -rf benchmarking && \
         git clone https://github.com/Quok-it/benchmarking && \
         cd benchmarking && \
         chmod +x benchmarks.sh
@@ -139,25 +140,45 @@ def loop():
         if stderr:
             logger.log(f"Warning during benchmark setup: {stderr}")
         
-        # Run the benchmark script (which includes running parse.py)
-        logger.log("Running benchmarks (this may take a while)...")
-        stdout, stderr = ssh_manager.run_command("cd benchmarking && ./benchmarks.sh")
+        # Run benchmark with output redirection and explicit shell
+        logger.log("Running benchmarks (this will take approximately 30 minutes)...")
+        benchmark_cmd = """
+        cd benchmarking && \
+        ./benchmarks.sh 2>&1 | tee benchmark_output.log && \
+        echo "=== BENCHMARK COMPLETE ===" && \
+        cat benchmark_output.log && \
+        python3 parse.py | tee parse_output.json && \
+        cat parse_output.json
+        """
         
-        # Log any stderr output for debugging
+        stdout, stderr = ssh_manager.run_command(benchmark_cmd)
+        logger.log("Benchmark command completed")
+        
+        # Log everything for debugging
+        logger.log("Benchmark stdout:")
+        logger.log(stdout)
         if stderr:
-            logger.log(f"Warnings during benchmark execution: {stderr}")
+            logger.log("Benchmark stderr:")
+            logger.log(stderr)
         
-        # Find the JSON output in stdout (it will be the last part of the output)
+        # Try to parse the JSON output
         try:
             import json
-            # Split the output by lines and find the last line that starts with '{'
+            # Look for the last JSON object in the output
             json_lines = [line for line in stdout.split('\n') if line.strip().startswith('{')]
             if json_lines:
                 benchmark_results = json.loads(json_lines[-1])
                 session.benchmarks["gpu_benchmarks"] = benchmark_results
                 logger.log("Successfully stored benchmark results in session!")
             else:
-                raise ValueError("No JSON output found in benchmark results")
+                # Check if the output file exists and try to read it directly
+                stdout, stderr = ssh_manager.run_command("cd benchmarking && cat parse_output.json")
+                if stdout and stdout.strip().startswith('{'):
+                    benchmark_results = json.loads(stdout)
+                    session.benchmarks["gpu_benchmarks"] = benchmark_results
+                    logger.log("Successfully stored benchmark results from file!")
+                else:
+                    raise ValueError("No JSON output found in benchmark results or output file")
                 
         except (json.JSONDecodeError, ValueError) as e:
             logger.log(f"Error parsing benchmark results: {e}")
